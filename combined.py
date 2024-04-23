@@ -216,6 +216,40 @@ def dijkstra(draw, grid, start, end):
 
     return False
 
+def bellman_ford(draw, grid, start, end):
+    print("Using Bellman_ford Algorithm")
+    # Initialize distances
+    distances = {spot: float('inf') for row in grid for spot in row}
+    distances[start] = 0
+
+    # Relax edges repeatedly
+    for _ in range(len(grid) * len(grid[0]) - 1):
+        for row in grid:
+            for spot in row:
+                for neighbor in spot.neighbors:
+                    new_distance = distances[spot] + 1  # Assuming uniform weight for simplicity
+                    if new_distance < distances[neighbor]:
+                        distances[neighbor] = new_distance
+
+    # Check for negative cycles
+    for row in grid:
+        for spot in row:
+            for neighbor in spot.neighbors:
+                new_distance = distances[spot] + 1
+                if new_distance < distances[neighbor]:
+                    print("Negative cycle detected!")
+                    return
+
+    # Reconstruct path
+    current = end
+    while current != start:
+        current.make_path()
+        draw()
+        current = min(current.neighbors, key=lambda x: distances[x])
+
+    start.make_start()
+    end.make_end()
+
 
 def reconstruct_path(came_from, current, draw):
     while current in came_from:
@@ -231,6 +265,8 @@ def algorithm(draw, grid, start, end, algorithm_type):
         return dijkstra(draw, grid, start, end)
     elif algorithm_type == "Uniform Cost Search":
         return uniform_cost_search(draw, grid, start, end)
+    elif algorithm_type == "Bellman_ford":
+        return bellman_ford(draw, grid, start, end)
 
 
 def make_grid(rows, width):
@@ -331,7 +367,7 @@ def main(win, width):
                 if event.key == pygame.K_r:
                     for row in grid:
                         for spot in row:
-                            if spot.is_closed() or spot.is_open() or spot.color == PURPLE:
+                            if spot != start and spot != end and not spot.is_barrier():
                                 spot.reset()
 
                 if event.key == pygame.K_a:
@@ -340,6 +376,9 @@ def main(win, width):
                     algorithm_type = "Dijkstra"
                 elif event.key == pygame.K_u:
                     algorithm_type = "Uniform Cost Search"
+                elif event.key == pygame.K_b:
+                    algorithm_type = "Bellman_ford"
+                    
 
     pygame.quit()
 
