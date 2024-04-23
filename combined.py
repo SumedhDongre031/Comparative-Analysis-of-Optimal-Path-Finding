@@ -1,6 +1,7 @@
 import pygame
 import math
 from queue import PriorityQueue
+import time
 
 WIDTH = 800
 WIN = pygame.display.set_mode((WIDTH, WIDTH))
@@ -88,27 +89,26 @@ class Spot:
     def __lt__(self, other):
         return False
 
-
-def uniform_cost_search(draw, grid, start, end):
-    print("Using Uniform Cost Search")
+def calculate_optimal_path_length(grid, start, end):
     count = 0
     open_set = PriorityQueue()
     open_set.put((0, count, start))
     came_from = {}
     g_score = {spot: float("inf") for row in grid for spot in row}
     g_score[start] = 0
+    f_score = {spot: float("inf") for row in grid for spot in row}
+    f_score[start] = h(start.get_pos(), end.get_pos())
+
+    open_set_hash = {start}
+    path_length = None
 
     while not open_set.empty():
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-
         current = open_set.get()[2]
+        open_set_hash.remove(current)
 
         if current == end:
-            reconstruct_path(came_from, end, draw)
-            end.make_end()
-            return True
+            path_length = g_score[current]
+            break
 
         for neighbor in current.neighbors:
             temp_g_score = g_score[current] + 1
@@ -116,17 +116,13 @@ def uniform_cost_search(draw, grid, start, end):
             if temp_g_score < g_score[neighbor]:
                 came_from[neighbor] = current
                 g_score[neighbor] = temp_g_score
-                if neighbor not in [item[2] for item in open_set.queue]:
+                f_score[neighbor] = temp_g_score + h(neighbor.get_pos(), end.get_pos())
+                if neighbor not in open_set_hash:
                     count += 1
-                    open_set.put((temp_g_score, count, neighbor))
-                    neighbor.make_open()
+                    open_set.put((f_score[neighbor], count, neighbor))
+                    open_set_hash.add(neighbor)
 
-        draw()
-
-        if current != start:
-            current.make_closed()
-
-    return False
+    return path_length
 
 def h(p1, p2):
     x1, y1 = p1
@@ -135,6 +131,7 @@ def h(p1, p2):
 
 
 def astar(draw, grid, start, end):
+    print("------------------------------------")
     print("Using A* Algorithm")
     count = 0
     open_set = PriorityQueue()
@@ -145,6 +142,10 @@ def astar(draw, grid, start, end):
     f_score = {spot: float("inf") for row in grid for spot in row}
     f_score[start] = h(start.get_pos(), end.get_pos())
 
+    max_open_set_size=0
+    
+    start_time = time.time()  # Record start time for time complexity
+    
     while not open_set.empty():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -155,6 +156,27 @@ def astar(draw, grid, start, end):
         if current == end:
             reconstruct_path(came_from, end, draw)
             end.make_end()
+            print("Completeness: Successful")
+
+            # Calculate path length
+            #sum(spot.color == PURPLE for row in grid for spot in row)
+            #path_length = sum(spot.color == PURPLE for row in grid for spot in row)
+            path_length = g_score[end]
+            print(path_length)
+            # Print optimality metric
+            optimal_length = calculate_optimal_path_length(grid, start, end)
+            print(optimal_length)
+            print(f"Optimality: {path_length == optimal_length}")
+
+            # Record end time for time complexity
+            end_time = time.time()
+            execution_time = end_time - start_time
+            print(f"Time Complexity: {execution_time} seconds")
+            
+            # Calculate space complexity
+            max_open_set_size = max(len(open_set.queue), max_open_set_size)
+            print(f"Space Complexity: {max_open_set_size}")
+
             return True
 
         for neighbor in current.neighbors:
@@ -174,10 +196,11 @@ def astar(draw, grid, start, end):
         if current != start:
             current.make_closed()
 
+    print("Completeness: Unsuccessful")
     return False
 
-
 def dijkstra(draw, grid, start, end):
+    print("------------------------------------")
     print("Using Dijkstra's Algorithm")
     count = 0
     open_set = PriorityQueue()
@@ -185,6 +208,75 @@ def dijkstra(draw, grid, start, end):
     came_from = {}
     g_score = {spot: float("inf") for row in grid for spot in row}
     g_score[start] = 0
+
+    max_open_set_size = 0
+    start_time = time.time()
+
+    while not open_set.empty():
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+
+        current = open_set.get()[2]
+
+        if current == end:
+            reconstruct_path(came_from, end, draw)
+
+            end.make_end()
+            print("Completeness: Successful")
+
+            # Calculate path length
+            path_length = sum(spot.color == PURPLE for row in grid for spot in row)
+            print(path_length)
+            # Print optimality metric
+            optimal_length = calculate_optimal_path_length(grid, start, end)
+            print(optimal_length)
+            print(f"Optimality: {path_length == optimal_length}")
+
+            # Record end time for time complexity
+            end_time = time.time()
+            execution_time = end_time - start_time
+            print(f"Time Complexity: {execution_time} seconds")
+
+            # Calculate space complexity
+            max_open_set_size = max(len(open_set.queue), max_open_set_size)
+            print(f"Space Complexity: {max_open_set_size}")
+
+            return True
+
+        for neighbor in current.neighbors:
+            temp_g_score = g_score[current] + 1
+
+            if temp_g_score < g_score[neighbor]:
+                came_from[neighbor] = current
+                g_score[neighbor] = temp_g_score
+                if neighbor not in [item[2] for item in open_set.queue]:
+                    count += 1
+                    open_set.put((temp_g_score, count, neighbor))
+                    neighbor.make_open()
+
+        draw()
+
+        if current != start:
+            current.make_closed()
+
+    print("Completeness: Unsuccessful")
+    return False
+
+
+def uniform_cost_search(draw, grid, start, end):
+    print("------------------------------------")
+    print("Using Uniform Cost Search")
+    count = 0
+    open_set = PriorityQueue()
+    open_set.put((0, count, start))
+    came_from = {}
+    g_score = {spot: float("inf") for row in grid for spot in row}
+    g_score[start] = 0
+
+    # Initialize time complexity metrics
+    max_open_set_size = 0
+    start_time = time.time()
 
     while not open_set.empty():
         for event in pygame.event.get():
@@ -196,6 +288,26 @@ def dijkstra(draw, grid, start, end):
         if current == end:
             reconstruct_path(came_from, end, draw)
             end.make_end()
+            print("Completeness: Successful")
+
+            # Calculate path length
+            # path_length = g_score[end]
+            path_length = sum(spot.color == PURPLE for row in grid for spot in row)
+            print(path_length)
+            # Print optimality metric
+            optimal_length = calculate_optimal_path_length(grid, start, end)
+            print(optimal_length)
+            print(f"Optimality: {path_length == optimal_length}")
+
+            # Record end time for time complexity
+            end_time = time.time()
+            execution_time = end_time - start_time
+            print(f"Time Complexity: {execution_time} seconds")
+
+            # Calculate space complexity
+            max_open_set_size = max(len(open_set.queue), max_open_set_size)
+            print(f"Space Complexity: {max_open_set_size}")
+
             return True
 
         for neighbor in current.neighbors:
@@ -206,7 +318,7 @@ def dijkstra(draw, grid, start, end):
                 g_score[neighbor] = temp_g_score
                 if neighbor not in [item[2] for item in open_set.queue]:
                     count += 1
-                    open_set.put((g_score[neighbor], count, neighbor))
+                    open_set.put((temp_g_score, count, neighbor))
                     neighbor.make_open()
 
         draw()
@@ -214,13 +326,19 @@ def dijkstra(draw, grid, start, end):
         if current != start:
             current.make_closed()
 
+    print("Completeness: Unsuccessful")
     return False
 
+
 def bellman_ford(draw, grid, start, end):
-    print("Using Bellman_ford Algorithm")
+    print("------------------------------------")
+    print("Using Bellman-Ford Algorithm")
     # Initialize distances
     distances = {spot: float('inf') for row in grid for spot in row}
     distances[start] = 0
+
+    # Record start time for time complexity
+    start_time = time.time()
 
     # Relax edges repeatedly
     for _ in range(len(grid) * len(grid[0]) - 1):
@@ -238,7 +356,7 @@ def bellman_ford(draw, grid, start, end):
                 new_distance = distances[spot] + 1
                 if new_distance < distances[neighbor]:
                     print("Negative cycle detected!")
-                    return
+                    return False
 
     # Reconstruct path
     current = end
@@ -249,6 +367,27 @@ def bellman_ford(draw, grid, start, end):
 
     start.make_start()
     end.make_end()
+    print("Completeness: Successful")
+
+    path_length = sum(spot.color == PURPLE for row in grid for spot in row) + 1
+    print(path_length)
+    # Print optimality metric
+    optimal_length = calculate_optimal_path_length(grid, start, end)
+    print(optimal_length)
+    print(f"Optimality: {path_length == optimal_length}")
+
+    # Record end time for time complexity
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print(f"Time Complexity: {execution_time} seconds")
+
+    # Calculate space complexity
+    max_open_set_size = len(grid) * len(grid[0])
+    print(f"Space Complexity: {max_open_set_size}")
+
+    return True
+
+
 
 
 def reconstruct_path(came_from, current, draw):
